@@ -1,0 +1,132 @@
+<header>
+    <h2>Jira-Assistent BN V0.1</h2>
+    <button class="close-btn" id="btn-close" aria-label="Cerrar asistente">
+        ×
+    </button>
+</header>
+
+<nav role="tablist" aria-label="Opciones del asistente">
+    <button role="tab" aria-selected="true" aria-controls="tab-create" id="btn-tab-create" class="tab-btn active">
+        Jira-Vorgang Erstellen
+    </button>
+    <button role="tab" aria-selected="false" aria-controls="tab-settings" id="btn-tab-settings" class="tab-btn"
+        tabindex="-1">
+        Einstellungen
+    </button>
+</nav>
+
+<main>
+    <section role="tabpanel" id="tab-create" aria-labelledby="btn-tab-create" class="tab-content active">
+        <article class="jbnv01-card">
+            <h3>Testausführung Erstellen</h3>
+            <div class="checkbox-group">
+                <label><input type="checkbox" id="opt-copyCommentVar" /> Kommentar
+                    kopieren</label>
+                <label><input type="checkbox" id="opt-openLastTestRunVar" /> Letzten
+                    Testlauf im Browser öffnen</label>
+                <label><input type="checkbox" id="opt-copyBugsVar" /> Bugs
+                    kopieren</label>
+            </div>
+
+            <div class="input-inline">
+                <label for="jira-testfall-id">Jira-Testfall-ID:</label>
+                <input type="text" field="Jira-Testfall-ID" id="jbnv01-input-testfall-id" placeholder="z. B. 11681"
+                    class="text-input" />
+            </div>
+            <button class="jbnv01-action-buttons" id="jbnv01-btn-execution">
+                Testdurchführung erstellen
+            </button>
+        </article>
+
+        <article class="jbnv01-card">
+            <h3>Testfall Erstellen</h3>
+            <div class="input-inline">
+                <label for="jira-userstoy-id">Jira-UserStoy-ID:</label>
+                <input type="text" field="Jira-UserStoy-ID" id="jbnv01-input-userstoy-id" placeholder="z. B. 1212"
+                    class="text-input" />
+            </div>
+            <button class="jbnv01-action-buttons" id="jbnv01-btn-test">
+                Testfall erstellen
+            </button>
+        </article>
+
+        <article class="jbnv01-card">
+            <h3>Bug Erstellen</h3>
+            <div class="input-inline">
+                <label for="jira-bug-id">Jira-Testausführung-ID:</label>
+                <input type="text" field="Jira-Testausführung-ID" id="jbnv01-input-execution-id"
+                    placeholder="z. B. 2578" class="text-input" />
+            </div>
+            <button class="jbnv01-action-buttons" id="jbnv01-btn-bug">
+                Bug erstellen
+            </button>
+        </article>
+    </section>
+
+    <section role="tabpanel" id="tab-settings" aria-labelledby="btn-tab-settings" class="tab-content" hidden>
+        <h3>Sprint Einstellungen</h3>
+
+        <div class="input-inline">
+            <label for="jbnv01-input-test-plan-id">TEST-PLAN-ID:</label>
+            <input type="text" field="TEST-PLAN-ID" id="jbnv01-input-test-plan-id" placeholder="z. B. PDNEU-11681"
+                class="text-input" />
+        </div>
+        <div class="input-inline">
+            <label for="jbnv01-input-sprint-id">Sprint:</label>
+            <input type="number" field="Sprint" id="jbnv01-input-sprint-id" placeholder="z. B. 33" class="text-input" />
+        </div>
+        <div class="input-inline">
+            <label for="jbnv01-input-pdgo-id">PD-Go Version:</label>
+            <input type="text" field="PD-Go Version" id="jbnv01-input-pdgo-id" placeholder="z. B. 1.27"
+                class="text-input" />
+        </div>
+
+        <h3>Bug Einstellungen</h3>
+        <div class="input-inline">
+            <label for="jbnv01-input-version">Betrifft Version:</label>
+            <input type="text" field="Betrifft Version" id="jbnv01-input-version" placeholder="z. B. 1.0.0"
+                class="text-input" />
+        </div>
+        <div class="input-inline">
+            <label for="jbnv01-input-fix-version">Lösungsversion(en):</label>
+            <input type="text" field="Lösungsversion(en)" id="jbnv01-input-fix-version" placeholder="z. B. KapG; EinzU"
+                class="text-input" />
+        </div>
+        <div class="input-inline">
+            <label for="jbnv01-input-os-version">Betriebssystem Version:</label>
+            <input type="text" field="Betriebssystem Version" id="jbnv01-input-os-version"
+                placeholder="z. B. Windows 11 Version 24H2" class="text-input" />
+        </div>
+        <div class="input-inline">
+            <label for="jbnv01-input-os-build">Betriebssystem Build:</label>
+            <input type="text" field="Betriebssystem Build" id="jbnv01-input-os-build" placeholder="z. B. 26100.8457"
+                class="text-input" />
+        </div>
+        <div class="input-inline">
+            <label for="jbnv01-input-browser-name">Browser Name:</label>
+            <input type="text" field="Browser Name" id="jbnv01-input-browser-name" placeholder="z. B. Microsoft Edge"
+                class="text-input" />
+        </div>
+        <div class="input-inline">
+            <label for="jbnv01-input-browser-version">Browser Version:</label>
+            <input type="text" field="Browser Version" id="jbnv01-input-browser-version"
+                placeholder="z. B. 148.0.3967.96" class="text-input" />
+        </div>
+        <div class="input-inline">
+            <label for="jbnv01-input-browser-build">Browser Build:</label>
+            <input type="text" field="Browser Build" id="jbnv01-input-browser-build"
+                placeholder="z. B. (Official build) (64-bit)" class="text-input" />
+        </div>
+        <div class="input-inline">
+            <label for="jbnv01-input-tkennung">t-Kennung:</label>
+            <input type="text" field="t-Kennung" id="jbnv01-input-tkennung" placeholder="z. B. t12345"
+                class="text-input" />
+        </div>
+    </section>
+</main>
+<footer>
+    <article class="jbnv01-card">
+        <h3>Status</h3>
+        <output id="jbnv01-status-textbox" aria-live="polite">Status...</output>
+    </article>
+</footer>

@@ -1,0 +1,171 @@
+#jira-assistant-root, :host {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 250px;
+    height: 100vh;
+    background: #d4d3d3;
+    border-left: 1px solid #dfe1e6;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+        Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    z-index: 999999;
+    box-sizing: border-box;
+    overflow: auto;
+}
+
+header {
+    padding: 5px;
+    border-bottom: 1px solid #ebecf0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+h2,
+h3 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #172b4d;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+[role="tablist"] {
+    display: flex;
+    border-bottom: 1px solid #ebecf0;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 5px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.tab-btn.active {
+    border-bottom-color: #0052cc;
+    color: #0052cc;
+    font-weight: 600;
+}
+
+main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 12px 0;
+    padding: 5px;
+    background: #ffffff;
+    border: 1px solid #ebecf0;
+    border-radius: 4px;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #42526e;
+    cursor: pointer;
+    line-height: 1.2;
+}
+
+.checkbox-group label input[type="checkbox"] {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.jbnv01-card {
+    background: #f4f5f7;
+    padding: 5px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.input-inline {
+    margin: 10px 0;
+}
+
+.input-inline label {
+    display: block;
+    font-size: 0.75rem;
+    color: #5e6c84;
+    margin-bottom: 4px;
+}
+
+.text-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 5px;
+    border: 1px solid #dfe1e6;
+    border-radius: 3px;
+}
+
+.jbnv01-action-buttons {
+    width: 100%;
+    padding: 5px;
+    background: #0052cc;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.jbnv01-action-buttons,
+.tab-btn {
+    transition:
+        background-color 0.2s ease,
+        font-weight 0.2s ease;
+}
+
+.jbnv01-action-buttons:hover {
+    background-color: #0747a6;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.tab-btn:hover,
+.tab-btn.active:hover,
+.close-btn:hover {
+    background-color: #ebecf0;
+    font-weight: bold;
+}
+
+.tab-content[hidden] {
+    display: none;
+}
+
+#footer-pane {
+    padding: 5px;
+}
+
+#jbnv01-status-textbox {
+    display: block;
+    min-height: 200px;
+    font-size: 0.8rem;
+    color: #42526e;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    background: #fff;
+    padding: 5px;
+    border: 1px solid #dfe1e6;
+    border-radius: 3px;
+}
