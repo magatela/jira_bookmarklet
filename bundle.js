@@ -5,7 +5,16 @@ if (document.getElementById('jira-assistant-root')) {
     console.log('Asistente ya cargado.');
     return;
 }
-    // --- INICIO: errors.js ---
+    // --- INICIO: utils.js ---
+function getDateYYYYMMDD(){
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}${month}${day}`;
+};
+
+// --- INICIO: errors.js ---
 class ValidationError extends Error {
     constructor(message) {
         super(message);
@@ -27,12 +36,30 @@ class JiraIssueTypeError extends Error {
     }
 };
 
+class JiraDuplicationError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "JiraDuplicationError";
+    }
+};
+
 // --- INICIO: JiraConstants.js ---
-const PROJECT_PREFIX = 'PDNEU';
-const PROJECT_PREFIX_KEY = `${PROJECT_PREFIX}-`;
+const Project = {
+    PROJECT_PREFIX : 'PDNEU',
+    PROJECT_PREFIX_KEY : `PDNEU-`,
+    APP_PREFIX : 'PD-Go ',
+    COMPONENTS : 'TP8QS',
+    STAGE : 'AIT_QSP_Stage',
+    ISSUE_LINK_BASE:'https://jira.steuer.niedersachsen.doi-de.net/browse/',
+};
+
+const JiraLabels = {
+    SPRINT : 'SPRI',
+    COMPONENT: 'TP8QS'
+};
 
 const ApiEndpoint = {
-    BASE: 'https://jira.h2s-ag.de/',
+    BASE: 'https://jira.steuer.niedersachsen.doi-de.net/',
     JIRA: 'rest/api/2/',
     AGILE_BOARDS: 'rest/agile/1.0/board/',
     RAVEN_API_V1: 'rest/raven/1.0/api/',
@@ -49,10 +76,11 @@ const JiraIssueTypes = {
 
 const CustomFields = {
     EPIC_LINK: 'customfield_10101',
-    TEST_PLAN_KEY: 'customfield_10231',
+    TEST_PLAN_KEY: 'customfield_10231', 
     STAGE: 'customfield_10229',
     REVISION: 'customfield_10223',
-    ORIGIN: 'customfield_20003' 
+    ORIGIN: 'customfield_20003', 
+    EPIC_NAME: 'customfield_10103' 
 };
 
 const TransitionsIDTestExecution = {
@@ -68,53 +96,184 @@ const BugStatsuValues = {
     ABORTED: 'Abgebrochen'
 };
 
-const JiraIssuePattern = new RegExp(`^(${PROJECT_PREFIX_KEY}\\d+|\\d+)$`);
+const JiraIssuePattern = new RegExp(`^(${Project.PROJECT_PREFIX_KEY}\\d+|\\d+)$`);
+const versionPattern = /\d+\.\d+/;
+
+// --- INICIO: jiraBuilders.js ---
+class JiraIssueBuilder {
+    constructor() {
+        this.fields = {};
+        this.fields.project = { key: Project.PROJECT_PREFIX };
+    };
+
+    reset() {
+        const issueType = this.fields.issuetype.name;
+        this.fields = {};
+        this.fields.issuetype = { name: issueType };
+        return this;
+    };
+    setSummary(summary) {
+        this.fields.summary = summary.trim();
+        return this;
+    };
+    setPriority(priority) {
+        this.fields.priority = { id: priority.trim() };
+        return this;
+    };
+    setFixVersions(versions) {
+        this.fields.fixVersions = versions.map(v => ({ name: v.trim() }));
+        return this;
+    };
+    setVersions(versions) {
+        this.fields.versions = versions.map(v => ({ name: v.trim() }));
+        return this;
+    };
+    setAssignee(assignee) {
+        this.fields.assignee = { name: assignee.trim() };
+        return this;
+    };
+    setLabels(labels) {
+        this.fields.labels = labels;
+        return this;
+    };
+    setComponents(components) {
+        this.fields.components = components.map(c => ({ name: c.trim() }));
+        return this;
+    };
+    setEpicLink(epiclink) {
+        this.fields[CustomFields.EPIC_LINK] = epiclink;
+        return this;
+    };
+    setTestPlan(testplan) {
+        this.fields[CustomFields.TEST_PLAN_KEY] = testplan;
+        return this;
+    };
+    setStage(stage) {
+        this.fields[CustomFields.STAGE] = stage;
+        return this;
+    };
+    setRevision(revision) {
+        this.fields[CustomFields.REVISION] = revision;
+        return this;
+    };
+    setOrigin(origin) {
+        this.fields[CustomFields.ORIGIN] = { id: origin };
+        return this;
+    };
+    build() {
+        return this.toJSON();
+    };
+    toJSON() {
+        return { fields: this.fields };
+    };
+    toJSONString() {
+        return JSON.stringify(this.toJSON(), null, 4);
+    };
+};
+class TestExecutionBuilder extends JiraIssueBuilder {
+    constructor() {
+        super();
+        this.setIssuetype();
+    }; setIssuetype() {
+        this.fields.issuetype = { name: JiraIssueTypes.TEST_EXECUTION };
+        return this;
+    };
+};
+class TestCaseBuilder extends JiraIssueBuilder {
+    constructor() {
+        super();
+        this.setIssuetype();
+    }; setIssuetype() {
+        this.fields.issuetype = { name: JiraIssueTypes.TEST };
+        return this;
+    };
+};
+class BugBuilder extends JiraIssueBuilder {
+    constructor() {
+        super();
+        this.setIssuetype();
+    }; setIssuetype() {
+        this.fields.issuetype = { name: JiraIssueTypes.BUG };
+        return this;
+    };
+};
 
 // --- INICIO: validators.js ---
 function validateJiraIssueKey(input) {
     const field = input.getAttribute('field');
-    const jiraId = input.value.toUpperCase();
+    const jiraId = input.value.toUpperCase().trim();
     const isValid = JiraIssuePattern.test(jiraId);
     if (!isValid) {
         input.style.border = '2px solid red';
         throw new ValidationError(`Ungültige Jira-Key Format:  **${input.value}**\nField: **${field}**`);
     };
-    if (jiraId.startsWith(PROJECT_PREFIX_KEY)) {
+    if (jiraId.startsWith(Project.PROJECT_PREFIX_KEY)) {
         return jiraId;
     };
-    return `${PROJECT_PREFIX_KEY}${jiraId}`;
+    return `${Project.PROJECT_PREFIX_KEY}${jiraId}`;
 };
 
 function validateJiraUrl() {
     const url = window.location.href;
-    if (url.startsWith('https://jira')) {
+    if (url.startsWith(ApiEndpoint.BASE)) {
         return true;
     };
     throw new ValidationError(`Ungültige Jira URL:  **${url}**\nBitte, öffne die **Jira Startseite** und melde dich ein, um diese App nutzen zu können.`);
 };
 
+function validateVersion(input){
+    const field = input.getAttribute('field');
+    const version = input.value;
+    const isValid = versionPattern.test(version);
+    if (!isValid) {
+        input.style.border = '2px solid red';
+        throw new ValidationError(`Ungültige **PD-Go Version** Format:  **${input.value}**\nField: **${field}**`);
+    };
+    return `${Project.APP_PREFIX}${version}`;
+};
+
 // --- INICIO: jiraEndpoints.js ---
 async function getIssueData(issueKey) {
-    const response = await fetch(`/rest/api/2/issue/${issueKey}`);
+    const response = await fetch(`${ApiEndpoint.BASE}${ApiEndpoint.JIRA}issue/${issueKey}`);
     if (response.ok) {
         const data = await response.json();
-        console.log(data);
         return data;
     } else {
-        throw new APIError(`Error fetching data: ${response.statusText}`);
+        console.log(response);
+        throw new APIError(`getIssueData() ERROR: ${response.statusText}`);
     };
 };
 
 async function getCurrentUser() {
-    const response = await fetch(`${ApiEndpoint.BASE}/${ApiEndpoint.JIRA}myself`);
+    const response = await fetch(`${ApiEndpoint.BASE}${ApiEndpoint.JIRA}myself`);
     if (response.ok) {
         const data = await response.json();
-        console.log(data);
         return data;
     } else {
-        throw new APIError(`Error fetching data: ${response.statusText}`);
+        throw new APIError(`getCurrentUser() Error: ${response.statusText}`);
     };
 };
+
+async function getLastTestExecution(testCaseKey){
+    const response = await fetch(`${ApiEndpoint.BASE}${ApiEndpoint.RAVEN_API_V1}test/${testCaseKey}/testexecutions`);
+    if (response.ok) {
+        const data = await response.json();
+        return data;
+    } else {
+        throw new APIError(`getLastTestExecution() Error: ${response.statusText}`);
+    };
+};
+
+async function getCurrentUser(){
+    const response = await fetch(`${ApiEndpoint.BASE}${ApiEndpoint.JIRA}myself`);
+    if (response.ok) {
+        const data = await response.json();
+        return data;
+    } else {
+        console.log(response);
+        throw new APIError(`getCurrentUser() ERROR: ${response.statusText}`);
+    };
+}
 
     const root = document.createElement('div');
     root.id = 'jira-assistant-root';
@@ -331,7 +490,7 @@ main {
             </div>
 
             <div class="input-inline">
-                <label for="jira-testfall-id">Jira-Testfall-ID:</label>
+                <label for="jbnv01-input-testfall-id">Jira-Testfall-ID:</label>
                 <input type="text" field="Jira-Testfall-ID" id="jbnv01-input-testfall-id" placeholder="z. B. 11681"
                     class="text-input" />
             </div>
@@ -343,8 +502,8 @@ main {
         <article class="jbnv01-card">
             <h3>Testfall Erstellen</h3>
             <div class="input-inline">
-                <label for="jira-userstoy-id">Jira-UserStoy-ID:</label>
-                <input type="text" field="Jira-UserStoy-ID" id="jbnv01-input-userstoy-id" placeholder="z. B. 1212"
+                <label for="jbnv01-input-userstory-id">Jira-UserStory-ID:</label>
+                <input type="text" field="Jira-UserStory-ID" id="jbnv01-input-userstory-id" placeholder="z. B. 1212"
                     class="text-input" />
             </div>
             <button class="jbnv01-action-buttons" id="jbnv01-btn-test">
@@ -355,7 +514,7 @@ main {
         <article class="jbnv01-card">
             <h3>Bug Erstellen</h3>
             <div class="input-inline">
-                <label for="jira-bug-id">Jira-Testausführung-ID:</label>
+                <label for="jbnv01-input-execution-id">Jira-Testausführung-ID:</label>
                 <input type="text" field="Jira-Testausführung-ID" id="jbnv01-input-execution-id"
                     placeholder="z. B. 2578" class="text-input" />
             </div>
@@ -382,18 +541,12 @@ main {
             <input type="text" field="PD-Go Version" id="jbnv01-input-pdgo-id" placeholder="z. B. 1.27"
                 class="text-input" />
         </div>
-
-        <h3>Bug Einstellungen</h3>
-        <div class="input-inline">
-            <label for="jbnv01-input-version">Betrifft Version:</label>
-            <input type="text" field="Betrifft Version" id="jbnv01-input-version" placeholder="z. B. 1.0.0"
-                class="text-input" />
-        </div>
         <div class="input-inline">
             <label for="jbnv01-input-fix-version">Lösungsversion(en):</label>
-            <input type="text" field="Lösungsversion(en)" id="jbnv01-input-fix-version" placeholder="z. B. KapG; EinzU"
+            <input type="text" field="Lösungsversion(en)" id="jbnv01-input-fix-version" placeholder="z. B. 1.0 KapG; 2.0 EinzelU; 3.0 PersG"
                 class="text-input" />
         </div>
+        <h3>Betriebssystem and Browser</h3>
         <div class="input-inline">
             <label for="jbnv01-input-os-version">Betriebssystem Version:</label>
             <input type="text" field="Betriebssystem Version" id="jbnv01-input-os-version"
@@ -437,6 +590,46 @@ main {
 const jbnv01_root = document.getElementById("jira-assistant-root");
 const getContainer = () => jbnv01_root.shadowRoot || jbnv01_root;
 
+if (jbnv01_root) {
+    ['keydown', 'keyup', 'keypress'].forEach((eventType) => {
+        jbnv01_root.addEventListener(eventType, (e) => {
+            e.stopPropagation();
+        });
+    });
+};
+
+const jbnv01_actionButtonsIds = [
+    'jbnv01-btn-execution',
+    'jbnv01-btn-test',
+    'jbnv01-btn-bug',
+];
+
+const jbnv01_userInputIds = [
+    'jbnv01-input-userstory-id',
+    'jbnv01-input-testfall-id',
+    'jbnv01-input-execution-id',
+];
+
+const jbnv01_settingsInputIds = [
+    'jbnv01-input-test-plan-id',
+    'jbnv01-input-sprint-id',
+    'jbnv01-input-pdgo-id',
+    'jbnv01-input-fix-version',
+    'jbnv01-input-os-version',
+    'jbnv01-input-os-build',
+    'jbnv01-input-browser-name',
+    'jbnv01-input-browser-version',
+    'jbnv01-input-browser-build',
+    'jbnv01-input-tkennung'
+];
+
+function initCloseButton() {
+    const closeButton = getContainer().querySelector('#btn-close');
+    closeButton.addEventListener('click', () => {
+        root.remove();
+    });
+};
+
 function initTabs() {
 
     const jbnv01_tabButtons = getContainer().querySelectorAll(".tab-btn");
@@ -458,41 +651,21 @@ function initTabs() {
 };
 
 function initInputs() {
-    const jbnv01_inputIds = [
-
-        'jbnv01-input-userstoy-id',
-        'jbnv01-input-testfall-id',
-        'jbnv01-input-execution-id',
-
-        'jbnv01-input-test-plan-id',
-        'jbnv01-input-sprint-id',
-        'jbnv01-input-pdgo-id',
-        'jbnv01-input-version',
-        'jbnv01-input-fix-version',
-        'jbnv01-input-os-version',
-        'jbnv01-input-os-build',
-        'jbnv01-input-browser-name',
-        'jbnv01-input-browser-version',
-        'jbnv01-input-browser-build',
-        'jbnv01-input-tkennung'
+    const items = [
+        ...jbnv01_userInputIds,
+        ...jbnv01_settingsInputIds
     ];
 
     const jbnv01_inputs = {};
 
-    jbnv01_inputIds.forEach(id => {
+    items.forEach(id => {
         jbnv01_inputs[id.replace(/-/g, '_')] = getContainer().querySelector(`#${id}`);
     });
     return jbnv01_inputs;
 };
 
 function initActionButtons() {
-    const jbnv01_actionButtonsIds = [
-        'jbnv01-btn-execution',
-        'jbnv01-btn-test',
-        'jbnv01-btn-bug',
-    ];
     const jbnv01_actionbuttons = {};
-
     jbnv01_actionButtonsIds.forEach(id => {
         jbnv01_actionbuttons[id.replace(/-/g, '_')] = getContainer().querySelector(`#${id}`);
     });
@@ -516,26 +689,45 @@ function initStatusPanel() {
     };
 };
 
+function saveData() {
+    const items = {};
+    jbnv01_settingsInputIds.forEach(id => {
+        items[id.replace(/-/g, '_')] = getContainer().querySelector(`#${id}`).value;
+    });
+    localStorage.setItem('JiraAssistantConfig', JSON.stringify(items));
+};
+
+function getData() {
+    const jbnv01_inputData = JSON.parse(localStorage.getItem('JiraAssistantConfig'));
+    jbnv01_settingsInputIds.forEach(id => {
+        getContainer().querySelector(`#${id}`).value = jbnv01_inputData[id.replace(/-/g, '_')];
+    });
+};
+
 // --- INICIO: panel.js ---
-const jbnv01_tabs = initTabs();
 const jbnv01_inputs = initInputs();
 const jbnv01_actionButtons = initActionButtons();
 const jbnv01_notifyStatus = initStatusPanel();
+initCloseButton();
 jbnv01_notifyStatus('bereit...');
+getData();
 
 jbnv01_actionButtons.jbnv01_btn_execution.addEventListener('click', async () => {
     try {
         Object.values(jbnv01_inputs).forEach(element => {
             element.style.border = 'none';
         });
-        jbnv01_notifyStatus('Bereit...');
+
         validateJiraUrl();
 
         const jbnv01_testIssueKey = validateJiraIssueKey(jbnv01_inputs.jbnv01_input_testfall_id);
         const jbnv01_testPlanKey = validateJiraIssueKey(jbnv01_inputs.jbnv01_input_test_plan_id);
         const jbnv01_testPlanData = await getIssueData(jbnv01_testPlanKey);
 
+        saveData();
+
         const jbnv01_isTestPlan = jbnv01_testPlanData.fields.issuetype.name === JiraIssueTypes.TEST_PLAN;
+        const jbnv01_sprint = jbnv01_testPlanData.fields.labels;
         if (!jbnv01_isTestPlan) {
             throw new JiraIssueTypeError(`Vorgang ${jbnv01_testPlanKey} ist kein Test Plan`);
         }
@@ -545,6 +737,50 @@ jbnv01_actionButtons.jbnv01_btn_execution.addEventListener('click', async () => 
         if (!jbnv01_isTest) {
             throw new JiraIssueTypeError(`Vorgang ${jbnv01_testIssueKey} ist kein Test`);
         }
+
+        const jbnv01_epicDataKey = jbnv01_testIssueData.fields[CustomFields.EPIC_LINK];
+        const jbnv01_epicData = await getIssueData(jbnv01_epicDataKey);
+        const jbnv01_epicName = jbnv01_epicData.fields[CustomFields.EPIC_NAME];
+
+        const jbnv01_lastTessExecutionList = await getLastTestExecution(jbnv01_testIssueKey);
+
+        if (jbnv01_lastTessExecutionList) {
+            const lastTestExecution_key = jbnv01_lastTessExecutionList.at(-1).key;
+            const lastTestExecution_data = await getIssueData(lastTestExecution_key);
+            const lastTestExecution_testPlanKey = lastTestExecution_data.fields[CustomFields.TEST_PLAN_KEY];
+            const lastTestExecution_creator = lastTestExecution_data.fields.creator.name;
+            const currentUser_data = await getCurrentUser();
+            const currentUser_name = currentUser_data.name;
+            if (currentUser_name == lastTestExecution_creator &&
+                lastTestExecution_testPlanKey == jbnv01_testPlanKey) 
+            {
+                throw new JiraDuplicationError(`Der Benutzer\t**${currentUser_name}**\that bereits eine Test-Execution für den Test\t**${jbnv01_testIssueKey}**\tim Testplan\t**${jbnv01_testPlanKey}**\terstellt\nLink:\t${Project.ISSUE_LINK_BASE}${lastTestExecution_key}`);
+
+            }
+        };
+
+        const jbnv01_labels = jbnv01_testIssueData.fields.labels.filter(label => !label.toUpperCase().startsWith('SPRI'));
+        if (!jbnv01_labels.includes(JiraLabels.COMPONENT)) {
+            jbnv01_labels.push(JiraLabels.COMPONENT);
+        };
+        jbnv01_labels.push(`Spirnt_${jbnv01_inputs.jbnv01_input_sprint_id.value}`);
+
+        const revision = `${getDateYYYYMMDD()}_PDGO_QSP_V${jbnv01_inputs.jbnv01_input_pdgo_id.value.replace('.', '')}_${jbnv01_epicName}_Sprint${jbnv01_inputs.jbnv01_input_sprint_id.value}`;
+
+        const texExecutionPayLoad = new TestExecutionBuilder()
+                .setSummary(`TE-${jbnv01_testIssueData.fields.summary.slice(3)}`)
+                .setLabels(jbnv01_labels)
+                .setPriority(jbnv01_testIssueData.fields.priority.id)
+                .setEpicLink(jbnv01_testIssueData.fields[CustomFields.EPIC_LINK])
+                .setFixVersions(jbnv01_inputs.jbnv01_input_fix_version.value.split(';'))
+                .setVersions([validateVersion(jbnv01_inputs.jbnv01_input_pdgo_id)])
+                .setComponents([Project.COMPONENTS])
+                .setStage(Project.STAGE)
+                .setTestPlan(jbnv01_testPlanKey)
+                .setRevision(revision)
+                .build();
+
+        console.log(texExecutionPayLoad);
 
     } catch (error) {
         jbnv01_notifyStatus(error.message);

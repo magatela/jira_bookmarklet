@@ -18,3 +18,10 @@ export class JiraIssueTypeError extends Error {
         this.name = "JiraIssueTypeError";
     }
 };
+
+export class JiraDuplicationError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "JiraDuplicationError";
+    }
+};

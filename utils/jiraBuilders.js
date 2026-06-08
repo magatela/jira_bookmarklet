@@ -1,9 +1,9 @@
-import { PROJECT_PREFIX, JiraIssueTypes, CustomFields } from "./JiraConstants";
+import { Project, JiraIssueTypes, CustomFields } from "./JiraConstants";
 
 class JiraIssueBuilder {
     constructor() {
         this.fields = {};
-        this.fields.project = { key: PROJECT_PREFIX };
+        this.fields.project = { key: Project.PROJECT_PREFIX };
     };
 
     reset() {

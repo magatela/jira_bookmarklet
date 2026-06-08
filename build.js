@@ -6,8 +6,10 @@ const path = require('path');
 // Si agregas más archivos en el futuro, añádelos aquí en el orden que deben cargarse.
 // =========================================================================
 const LIST_OF_DEPENDENCIES = [
+    './utils/utils.js',
     './utils/errors.js',
     './utils/JiraConstants.js',
+    './utils/jiraBuilders.js',
     './utils/validators.js',
     './utils/jiraEndpoints.js',
 ];

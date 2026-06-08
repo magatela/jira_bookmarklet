@@ -17,4 +17,4 @@ scripts.forEach((file)=>{
 });
 
 // esta linea se pega en el bookmarklet para se actualize automaticamente en el navegador cuando se constriiye de nuevo el projecto
-//javascript:(function (){ fetch('http://localhost:65387').then(r => r.text()).then(code => eval(code)).catch( err => alert('Server offline'))})(); 
+// javascript:(function (){ fetch('http://localhost:65387').then(r => r.text()).then(code => eval(code)).catch( err => alert(`Server offline ${err}`))})();

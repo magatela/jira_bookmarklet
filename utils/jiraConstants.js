@@ -1,9 +1,20 @@
 // JIRA export constANTS
-export const PROJECT_PREFIX = 'PDNEU';
-export const PROJECT_PREFIX_KEY = `${PROJECT_PREFIX}-`;
+export const Project = {
+    PROJECT_PREFIX : 'PDNEU',
+    PROJECT_PREFIX_KEY : `PDNEU-`,
+    APP_PREFIX : 'PD-Go ',
+    COMPONENTS : 'TP8QS',
+    STAGE : 'AIT_QSP_Stage',
+    ISSUE_LINK_BASE:'https://jira.steuer.niedersachsen.doi-de.net/browse/',
+};
+
+export const JiraLabels = {
+    SPRINT : 'SPRI',
+    COMPONENT: 'TP8QS'
+};
 
 export const ApiEndpoint = {
-    BASE: 'https://jira.h2s-ag.de/',
+    BASE: 'https://jira.steuer.niedersachsen.doi-de.net/',
     JIRA: 'rest/api/2/',
     AGILE_BOARDS: 'rest/agile/1.0/board/',
     RAVEN_API_V1: 'rest/raven/1.0/api/',
@@ -20,10 +31,11 @@ export const JiraIssueTypes = {
 
 export const CustomFields = {
     EPIC_LINK: 'customfield_10101',
-    TEST_PLAN_KEY: 'customfield_10231',
+    TEST_PLAN_KEY: 'customfield_10231', // nur für TestExecution
     STAGE: 'customfield_10229',
     REVISION: 'customfield_10223',
-    ORIGIN: 'customfield_20003' // Herkunft  {"value": "Entwicklung", "id": "520539",} {"value": "RZF", "id": "520538"}
+    ORIGIN: 'customfield_20003', // Herkunft  {"value": "Entwicklung", "id": "520539",} {"value": "RZF", "id": "520538"}
+    EPIC_NAME: 'customfield_10103' // nur für IssueType Epic
 };
 
 export const TransitionsIDTestExecution = {
@@ -39,4 +51,5 @@ export const BugStatsuValues = {
     ABORTED: 'Abgebrochen'
 };
 
-export const JiraIssuePattern = new RegExp(`^(${PROJECT_PREFIX_KEY}\\d+|\\d+)$`);
+export const JiraIssuePattern = new RegExp(`^(${Project.PROJECT_PREFIX_KEY}\\d+|\\d+)$`);
+export const versionPattern = /\d+\.\d+/;
