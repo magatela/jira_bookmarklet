@@ -3,10 +3,10 @@ import { ApiEndpoint } from './JiraConstants.js';
 
 // Safe helper to parse JSON from response
 async function parseResponseJson(response, functionName) {
+    const text = await response.text();
     try {
-        return await response.json();
+        return JSON.parse(text);
     } catch (e) {
-        const text = await response.text();
         throw new APIError(`${functionName} ERROR: Expected JSON but received HTML/XML: ${text.slice(0, 150).trim()}`);
     }
 }
@@ -14,15 +14,15 @@ async function parseResponseJson(response, functionName) {
 // Safe helper to extract meaningful error messages from non-ok responses
 async function handleResponseError(response, functionName) {
     let errorMsg = `${functionName} ERROR: HTTP ${response.status} ${response.statusText}`;
+    const text = await response.text();
     try {
-        const errData = await response.json();
+        const errData = JSON.parse(text);
         if (errData && errData.errorMessages && errData.errorMessages.length > 0) {
             errorMsg += `: ${errData.errorMessages.join(', ')}`;
         } else if (errData && errData.errors && Object.keys(errData.errors).length > 0) {
             errorMsg += `: ${Object.entries(errData.errors).map(([k, v]) => `${k}: ${v}`).join(', ')}`;
         }
     } catch (_) {
-        const text = await response.text();
         if (text) {
             errorMsg += `: ${text.slice(0, 150).trim()}`;
         }
