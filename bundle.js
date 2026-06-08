@@ -236,10 +236,8 @@ function validateVersion(input){
 async function getIssueData(issueKey) {
     const response = await fetch(`${ApiEndpoint.BASE}${ApiEndpoint.JIRA}issue/${issueKey}`);
     if (response.ok) {
-        const data = await response.json();
-        return data;
+        return await response.json();
     } else {
-        console.log(response);
         throw new APIError(`getIssueData() ERROR: ${response.statusText}`);
     };
 };
@@ -247,8 +245,7 @@ async function getIssueData(issueKey) {
 async function getCurrentUser() {
     const response = await fetch(`${ApiEndpoint.BASE}${ApiEndpoint.JIRA}myself`);
     if (response.ok) {
-        const data = await response.json();
-        return data;
+        return await response.json();
     } else {
         throw new APIError(`getCurrentUser() Error: ${response.statusText}`);
     };
@@ -257,8 +254,7 @@ async function getCurrentUser() {
 async function getLastTestExecution(testCaseKey){
     const response = await fetch(`${ApiEndpoint.BASE}${ApiEndpoint.RAVEN_API_V1}test/${testCaseKey}/testexecutions`);
     if (response.ok) {
-        const data = await response.json();
-        return data;
+        return await response.json();
     } else {
         throw new APIError(`getLastTestExecution() Error: ${response.statusText}`);
     };
@@ -267,12 +263,38 @@ async function getLastTestExecution(testCaseKey){
 async function getCurrentUser(){
     const response = await fetch(`${ApiEndpoint.BASE}${ApiEndpoint.JIRA}myself`);
     if (response.ok) {
-        const data = await response.json();
-        return data;
+        return await response.json();
     } else {
-        console.log(response);
         throw new APIError(`getCurrentUser() ERROR: ${response.statusText}`);
     };
+};
+
+async function postRequest(url, payload){
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type':'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (response.status === 204) {
+            return null; 
+        }
+        return response.json();
+    } catch (error) {
+        throw new APIError(`postRequest() ERROR: ${error}`);
+    };
+};
+
+async function createIssue(payload){
+    return await postRequest(`${ApiEndpoint.BASE}${ApiEndpoint.JIRA}issue`, payload);
+}
+
+async function addTestToTestExecution(execution_key, test_key){
+    data = {add:[test_key]};
+    return await postRequest(`${ApiEndpoint.BASE}${ApiEndpoint.RAVEN_API_V1}testexec/${execution_key}/test`, data);
 }
 
     const root = document.createElement('div');
@@ -705,6 +727,7 @@ function getData() {
 };
 
 // --- INICIO: panel.js ---
+const jbnv01_tabs = initTabs();
 const jbnv01_inputs = initInputs();
 const jbnv01_actionButtons = initActionButtons();
 const jbnv01_notifyStatus = initStatusPanel();
@@ -714,6 +737,8 @@ getData();
 
 jbnv01_actionButtons.jbnv01_btn_execution.addEventListener('click', async () => {
     try {
+        jbnv01_notifyStatus('Starte Generierung...');
+
         Object.values(jbnv01_inputs).forEach(element => {
             element.style.border = 'none';
         });
@@ -755,7 +780,6 @@ jbnv01_actionButtons.jbnv01_btn_execution.addEventListener('click', async () => 
                 lastTestExecution_testPlanKey == jbnv01_testPlanKey) 
             {
                 throw new JiraDuplicationError(`Der Benutzer\t**${currentUser_name}**\that bereits eine Test-Execution für den Test\t**${jbnv01_testIssueKey}**\tim Testplan\t**${jbnv01_testPlanKey}**\terstellt\nLink:\t${Project.ISSUE_LINK_BASE}${lastTestExecution_key}`);
-
             }
         };
 
@@ -779,8 +803,12 @@ jbnv01_actionButtons.jbnv01_btn_execution.addEventListener('click', async () => 
                 .setTestPlan(jbnv01_testPlanKey)
                 .setRevision(revision)
                 .build();
-
         console.log(texExecutionPayLoad);
+        const newTestExecution_data = await createIssue(texExecutionPayLoad);
+        const newTestExecution_key = newTestExecution_data.key;
+        await addTestToTestExecution(newTestExecution_key, jbnv01_testIssueKey);
+        window.open(`${ApiEndpoint.BASE}secure/XrayExecuteTest!default.jspa?testExecIssueKey=${newTestExecution_key}&testIssueKey=${jbnv01_testIssueKey}`);
+        jbnv01_notifyStatus(`New Test Execution: ${newTestExecution_key}`);
 
     } catch (error) {
         jbnv01_notifyStatus(error.message);

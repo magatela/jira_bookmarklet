@@ -1,10 +1,10 @@
 import { initTabs, initInputs, initActionButtons, initStatusPanel, initCloseButton, getData, saveData } from './utils/inits.js';
 import { validateJiraIssueKey, validateJiraUrl } from './utils/validators.js';
-import { getIssueData, getLastTestExecution, getCurrentUser } from './utils/jiraEndpoints.js';
+import { getIssueData, getLastTestExecution, getCurrentUser, createIssue, addTestToTestExecution } from './utils/jiraEndpoints.js';
 import { JiraIssueTypeError, JiraDuplicationError } from './utils/errors.js';
-import { JiraIssueTypes, CustomFields, JiraLabels, Project } from './utils/JiraConstants.js';
+import { JiraIssueTypes, CustomFields, JiraLabels, Project, ApiEndpoint } from './utils/JiraConstants.js';
 import { getDateYYYYMMDD } from './utils/utils.js';
-import { TestExecutionBuilder } from './utils/jiraBuilders.js'
+import { TestExecutionBuilder } from './utils/jiraBuilders.js';
 
 const jbnv01_tabs = initTabs();
 const jbnv01_inputs = initInputs();
@@ -17,6 +17,8 @@ getData();
 // create Test execution
 jbnv01_actionButtons.jbnv01_btn_execution.addEventListener('click', async () => {
     try {
+        jbnv01_notifyStatus('Starte Generierung...');
+
         Object.values(jbnv01_inputs).forEach(element => {
             element.style.border = 'none';
         });
@@ -48,7 +50,7 @@ jbnv01_actionButtons.jbnv01_btn_execution.addEventListener('click', async () => 
         const jbnv01_epicData = await getIssueData(jbnv01_epicDataKey);
         const jbnv01_epicName = jbnv01_epicData.fields[CustomFields.EPIC_NAME];
 
-        //4. get last Test execution
+        //4. get last Test execution. 
         const jbnv01_lastTessExecutionList = await getLastTestExecution(jbnv01_testIssueKey);
         
         if (jbnv01_lastTessExecutionList) {
@@ -62,7 +64,6 @@ jbnv01_actionButtons.jbnv01_btn_execution.addEventListener('click', async () => 
                 lastTestExecution_testPlanKey == jbnv01_testPlanKey) 
             {
                 throw new JiraDuplicationError(`Der Benutzer\t**${currentUser_name}**\that bereits eine Test-Execution für den Test\t**${jbnv01_testIssueKey}**\tim Testplan\t**${jbnv01_testPlanKey}**\terstellt\nLink:\t${Project.ISSUE_LINK_BASE}${lastTestExecution_key}`);
-                
             }
         };
 
@@ -89,27 +90,13 @@ jbnv01_actionButtons.jbnv01_btn_execution.addEventListener('click', async () => 
                 .setTestPlan(jbnv01_testPlanKey)
                 .setRevision(revision)
                 .build();
-        
         console.log(texExecutionPayLoad);
-        
-        
-        
-        // console.log(jbnv01_lastTestExecutionData);
-        // jbnv01_notifyStatus(JSON.stringify(dataForTestExecution));
-
-        // //  'jbnv01-input-test-plan-id',
-        // // 'jbnv01-input-sprint-id',
-        // // 'jbnv01-input-pdgo-id',
-        // // 'jbnv01-input-fix-version',
-        // // 'jbnv01-input-os-version',
-        // // 'jbnv01-input-os-build',
-        // // 'jbnv01-input-browser-name',
-        // // 'jbnv01-input-browser-version',
-        // // 'jbnv01-input-browser-build',
-        // // 'jbnv01-input-tkennung'
-
-
-
+        const newTestExecution_data = await createIssue(texExecutionPayLoad);
+        const newTestExecution_key = newTestExecution_data.key;
+        await addTestToTestExecution(newTestExecution_key, jbnv01_testIssueKey);
+        window.open(`${ApiEndpoint.BASE}secure/XrayExecuteTest!default.jspa?testExecIssueKey=${newTestExecution_key}&testIssueKey=${jbnv01_testIssueKey}`);
+        jbnv01_notifyStatus(`New Test Execution: ${newTestExecution_key}`);
+    
     } catch (error) {
         jbnv01_notifyStatus(error.message);
     }
